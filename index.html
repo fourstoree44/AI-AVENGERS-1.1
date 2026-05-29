@@ -1,0 +1,792 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>Avengers AI - Free LLM API</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;400;500;600;700&family=Orbitron:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 50%, #0f0f23 100%);
+            min-height: 100vh;
+            color: #fff;
+        }
+        .login-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #0a0a0a, #1a1a2e);
+            z-index: 1000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .login-box {
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(78, 205, 196, 0.3);
+            border-radius: 30px;
+            padding: 40px;
+            width: 400px;
+            max-width: 90%;
+            text-align: center;
+        }
+        .login-box h2 {
+            font-family: 'Orbitron', monospace;
+            margin-bottom: 30px;
+            background: linear-gradient(135deg, #ff6b6b, #4ecdc4);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+        .login-input {
+            width: 100%;
+            padding: 14px 16px;
+            margin: 10px 0;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 12px;
+            color: white;
+            font-size: 1rem;
+        }
+        .login-input:focus { outline: none; border-color: #4ecdc4; }
+        .login-btn {
+            width: 100%;
+            padding: 14px;
+            margin: 15px 0 10px;
+            background: linear-gradient(135deg, #4ecdc4, #45b7d1);
+            border: none;
+            border-radius: 12px;
+            color: white;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: bold;
+        }
+        .login-btn:hover { opacity: 0.9; transform: scale(1.02); }
+        .switch-btn {
+            color: #4ecdc4;
+            cursor: pointer;
+            margin-top: 15px;
+            display: inline-block;
+            background: none;
+            border: none;
+            font-size: 0.9rem;
+        }
+        .error-msg { color: #ff6b6b; font-size: 0.8rem; margin: 5px 0; }
+        .verify-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.95);
+            z-index: 1001;
+            justify-content: center;
+            align-items: center;
+        }
+        .verify-box {
+            background: rgba(0, 0, 0, 0.9);
+            border: 1px solid #4ecdc4;
+            border-radius: 20px;
+            padding: 30px;
+            width: 350px;
+            text-align: center;
+        }
+        .main-app { display: none; }
+        .container { max-width: 1400px; margin: 0 auto; padding: 15px; height: 100vh; display: flex; flex-direction: column; }
+        .header { text-align: center; padding: 12px 20px; background: rgba(0, 0, 0, 0.5); backdrop-filter: blur(10px); border-radius: 20px; margin-bottom: 15px; }
+        .logo { font-family: 'Orbitron', monospace; font-size: 1.6rem; font-weight: 800; background: linear-gradient(135deg, #ff6b6b, #4ecdc4, #45b7d1); -webkit-background-clip: text; background-clip: text; color: transparent; }
+        .user-bar { background: rgba(0, 0, 0, 0.5); border-radius: 20px; padding: 10px 20px; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; }
+        .logout-btn { background: rgba(255, 107, 107, 0.2); border: 1px solid #ff6b6b; padding: 6px 15px; border-radius: 20px; color: #ff6b6b; cursor: pointer; }
+        .main-layout { display: flex; gap: 15px; flex: 1; min-height: 0; overflow: hidden; }
+        .sidebar { width: 240px; background: rgba(0, 0, 0, 0.5); border-radius: 20px; padding: 12px; overflow-y: auto; }
+        .sidebar-title { font-size: 0.7rem; margin: 10px 0 6px; padding-bottom: 4px; border-bottom: 1px solid rgba(255, 255, 255, 0.2); color: #4ecdc4; }
+        .feature-btn { width: 100%; padding: 8px; margin: 3px 0; background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 8px; color: white; cursor: pointer; text-align: left; display: flex; align-items: center; gap: 8px; }
+        .feature-btn i { width: 20px; color: #4ecdc4; }
+        .feature-btn:hover { background: rgba(78, 205, 196, 0.2); }
+        .chat-area { flex: 1; background: rgba(0, 0, 0, 0.5); border-radius: 20px; display: flex; flex-direction: column; overflow: hidden; }
+        .chat-header { padding: 12px 15px; border-bottom: 1px solid rgba(255, 255, 255, 0.1); }
+        .messages { flex: 1; overflow-y: auto; padding: 15px; display: flex; flex-direction: column; gap: 10px; }
+        .message { display: flex; gap: 8px; max-width: 85%; animation: fadeIn 0.2s; }
+        .message.user { align-self: flex-end; flex-direction: row-reverse; }
+        .message-avatar { width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
+        .message.user .message-avatar { background: linear-gradient(135deg, #ff6b6b, #ee5a24); }
+        .message.bot .message-avatar { background: linear-gradient(135deg, #4ecdc4, #45b7d1); }
+        .message-content { background: rgba(255, 255, 255, 0.08); padding: 10px 14px; border-radius: 14px; line-height: 1.5; font-size: 0.9rem; white-space: pre-wrap; }
+        .typing-area { padding: 12px 15px; border-top: 1px solid rgba(255, 255, 255, 0.1); }
+        .input-row { display: flex; gap: 10px; align-items: center; }
+        .message-input { flex: 1; background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 25px; padding: 10px 16px; color: white; resize: none; font-size: 0.9rem; min-height: 42px; }
+        .message-input:focus { outline: none; border-color: #4ecdc4; }
+        .send-btn { width: 44px; height: 44px; border-radius: 50%; background: linear-gradient(135deg, #4ecdc4, #45b7d1); border: none; color: white; cursor: pointer; }
+        .media-row { display: flex; gap: 8px; margin-bottom: 10px; }
+        .media-btn { width: 36px; height: 36px; border-radius: 50%; background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.15); color: white; cursor: pointer; }
+        .quick-row { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 10px; }
+        .quick-cmd { background: rgba(255, 255, 255, 0.06); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 16px; padding: 4px 12px; font-size: 0.7rem; cursor: pointer; }
+        .file-input { display: none; }
+        .typing-indicator { display: flex; gap: 4px; padding: 8px 12px; background: rgba(255,255,255,0.05); border-radius: 14px; width: fit-content; }
+        .typing-indicator span { width: 6px; height: 6px; background: #4ecdc4; border-radius: 50%; animation: typingAnim 1.4s infinite; }
+        @keyframes typingAnim { 0%,60%,100% { transform: translateY(0); } 30% { transform: translateY(-6px); } }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+        @media (max-width: 768px) { .sidebar { display: none; } .message { max-width: 95%; } }
+        .api-status {
+            background: rgba(78,205,196,0.15);
+            border-left: 3px solid #4ecdc4;
+            padding: 8px 12px;
+            margin-bottom: 15px;
+            border-radius: 8px;
+            font-size: 0.75rem;
+        }
+        pre { background: rgba(0,0,0,0.6); padding: 10px; border-radius: 8px; overflow-x: auto; margin: 8px 0; font-size: 0.75rem; }
+        code { font-family: monospace; }
+    </style>
+</head>
+<body>
+
+<!-- LOGIN PAGE -->
+<div id="loginContainer" class="login-container">
+    <div class="login-box">
+        <h2>⚡ AVENGERS AI ⚡</h2>
+        <div id="loginForm">
+            <h3 id="formTitle">LOGIN</h3>
+            <input type="text" id="loginEmail" class="login-input" placeholder="Email / Username">
+            <input type="password" id="loginPassword" class="login-input" placeholder="Password (min 8 digit)">
+            <div id="loginError" class="error-msg"></div>
+            <button id="loginSubmitBtn" class="login-btn">Login</button>
+            <button id="switchBtn" class="switch-btn">Belum punya akun? Register</button>
+        </div>
+    </div>
+</div>
+
+<!-- VERIFY MODAL -->
+<div id="verifyModal" class="verify-modal">
+    <div class="verify-box">
+        <h3>🔐 VERIFIKASI EMAIL</h3>
+        <p style="margin: 15px 0; font-size: 0.8rem;">Kode verifikasi: <strong id="displayCode" style="font-size: 1.5rem;"></strong></p>
+        <input type="text" id="verifyCodeInput" class="login-input" placeholder="Masukkan kode 6 digit" maxlength="6">
+        <div id="verifyError" class="error-msg"></div>
+        <button id="verifyBtn" class="login-btn">Verifikasi</button>
+        <button id="resendBtn" class="switch-btn">Kirim ulang kode</button>
+    </div>
+</div>
+
+<!-- MAIN APP -->
+<div id="mainApp" class="main-app">
+    <div class="container">
+        <div class="header">
+            <h1 class="logo">⚡ AVENGERS AI (Free LLM API) ⚡</h1>
+            <div class="status-badge" style="margin-top: 5px; font-size: 0.7rem;">
+                <i class="fas fa-circle" style="font-size: 8px; color: #4ecdc4;"></i> Online | Free API
+            </div>
+        </div>
+
+        <div class="user-bar">
+            <div><i class="fas fa-user"></i> <span id="userEmailDisplay"></span> <span id="userRoleDisplay" style="margin-left: 10px; background: rgba(78,205,196,0.2); padding: 2px 8px; border-radius: 12px;"></span></div>
+            <button class="logout-btn" onclick="logout()"><i class="fas fa-sign-out-alt"></i> Logout</button>
+        </div>
+
+        <div class="api-status" id="apiStatusMsg">
+            <i class="fas fa-check-circle"></i> ✅ Terhubung ke Free LLM API (Multi-Provider) - Bisa jawab apapun!
+        </div>
+
+        <div class="main-layout">
+            <div class="sidebar">
+                <div class="sidebar-title"><i class="fas fa-bolt"></i> MODE</div>
+                <button class="feature-btn" onclick="setMode('general')"><i class="fas fa-comments"></i> Chat Umum</button>
+                <button class="feature-btn" onclick="setMode('coding')"><i class="fas fa-code"></i> Coding Expert</button>
+                <button class="feature-btn" onclick="setMode('creative')"><i class="fas fa-feather-alt"></i> Creative Writing</button>
+                
+                <div class="sidebar-title"><i class="fas fa-robot"></i> PERSONALITY</div>
+                <button class="feature-btn" onclick="setPersonality('hero')"><i class="fas fa-fist-raised"></i> Hero (Semangat)</button>
+                <button class="feature-btn" onclick="setPersonality('master')"><i class="fas fa-brain"></i> Master (Expert)</button>
+                <button class="feature-btn" onclick="setPersonality('casual')"><i class="fas fa-smile"></i> Casual (Santai)</button>
+                
+                <div class="sidebar-title"><i class="fas fa-chart-line"></i> STATS</div>
+                <div style="font-size: 0.7rem; padding: 5px;">
+                    <p>📨 Pesan: <span id="msgCount">0</span></p>
+                </div>
+                
+                <button class="feature-btn" onclick="clearChat()"><i class="fas fa-trash"></i> Clear Chat</button>
+                <button class="feature-btn" onclick="exportChat()"><i class="fas fa-download"></i> Export Chat</button>
+            </div>
+
+            <div class="chat-area">
+                <div class="chat-header">
+                    <h3><i class="fas fa-robot"></i> <span id="modeLabel">Chat Umum</span> | 🎭 <span id="personalityLabel">Hero</span></h3>
+                </div>
+                
+                <div class="messages" id="messages">
+                    <div class="message bot">
+                        <div class="message-avatar"><i class="fas fa-robot"></i></div>
+                        <div class="message-content">
+                            <strong>⚡ AVENGERS AI - FREE LLM API ⚡</strong><br><br>
+                            🚀 <strong>Menggunakan API Gratis dari free-llm-api-keys!</strong><br>
+                            ✅ Model: <strong>DeepSeek / GPT-5.5 / Claude</strong><br>
+                            ✅ Bisa menjawab <strong>APAPUN</strong> (coding, sains, filsafat, sejarah, puisi)<br>
+                            ✅ 100% GRATIS - No Credit Card Required!<br><br>
+                            <strong>Coba tanyakan apapun! Kirim pesan sekarang!</strong> 🚀
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="typing-area">
+                    <div class="media-row">
+                        <button class="media-btn" onclick="document.getElementById('fileInput').click()"><i class="fas fa-paperclip"></i></button>
+                        <button class="media-btn" id="voiceBtn" onclick="toggleVoice()"><i class="fas fa-microphone"></i></button>
+                        <button class="media-btn" onclick="speakLast()"><i class="fas fa-volume-up"></i></button>
+                    </div>
+                    
+                    <input type="file" id="fileInput" class="file-input" accept=".txt,.js,.html,.css,.py" onchange="sendFile(this)">
+                    
+                    <div class="input-row">
+                        <textarea id="messageInput" class="message-input" placeholder="Tanyakan apapun... (Enter kirim)" rows="1"></textarea>
+                        <button class="send-btn" onclick="sendMessage()"><i class="fas fa-paper-plane"></i></button>
+                    </div>
+                    
+                    <div class="quick-row">
+                        <span class="quick-cmd" onclick="setQuick('Buatkan kode HTML website portfolio modern dengan efek glassmorphism')">💻 Buat Kode</span>
+                        <span class="quick-cmd" onclick="setQuick('Jelaskan teori relativitas Einstein secara detail dengan contoh')">⚛️ Relativitas</span>
+                        <span class="quick-cmd" onclick="setQuick('Buatkan puisi tentang coding dan masa depan teknologi')">📝 Puisi</span>
+                        <span class="quick-cmd" onclick="setQuick('Apa makna kehidupan menurut Stoicisme? Jelaskan mendalam')">🤔 Filsafat</span>
+                        <span class="quick-cmd" onclick="setQuick('Jelaskan cara kerja black hole dan apa yang terjadi di dalamnya')">🕳️ Black Hole</span>
+                        <span class="quick-cmd" onclick="setQuick('Jelaskan sejarah Perang Dunia 2 secara ringkas')">📜 Sejarah</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // ========== FREE LLM API KEYS (UPDATE 29 MEI 2026) ==========
+    // Diambil dari: https://github.com/alistaitsacle/free-llm-api-keys
+    
+    const API_BASE_URL = 'https://aiapiv2.pekpik.com/v1';
+    
+    // Daftar API Keys dengan model yang sesuai
+    const API_CONFIGS = [
+        // DeepSeek - Utama untuk chat umum (budget $19)
+        { key: 'sk-eyVLvNMOC0icOO6X0Sii4Z002YHP4v4VAQxuCsegdxNkA2Hv', model: 'deepseek-chat', name: 'DeepSeek' },
+        { key: 'sk-7GzuiA8qi9ZsKDTudEelCSNgRq2QWeK1OSZLxYAkO2OinVHz', model: 'deepseek-chat', name: 'DeepSeek' },
+        { key: 'sk-i9ljiRBc0e5NN9exuJJQIl68qSIh9E2DZcDZR2652Usk8j1E', model: 'deepseek-chat', name: 'DeepSeek' },
+        
+        // GPT-5.5 - Cadangan (budget $19)
+        { key: 'sk-sDdnSTtXyRtnZcRsUdvxKcPE0UD2Jv7WzvUWMuXcVw1cmb7G', model: 'gpt-5.5', name: 'GPT-5.5' },
+        { key: 'sk-AlWf6grJMr43y4NYLFBm3ElGMBNcXOKQHyM9uE0kkOfTWXVp', model: 'gpt-5.5', name: 'GPT-5.5' },
+        { key: 'sk-s6wjTkVIdQDQLEKDGtny6VyIE1Qos7LqHS7EpTxYLGzIH6W5', model: 'gpt-5.5', name: 'GPT-5.5' },
+        
+        // Claude Opus 4.7 - Cadangan (budget $20)
+        { key: 'sk-6vHDQFk5Ry1sDsmOTZ0fZLLmKJHRyBpd5sF4InrAjWqKnKLG', model: 'claude-opus-4-7', name: 'Claude Opus' },
+        { key: 'sk-LM0IetS8GHO3WhxMLlysMSX8zyiEyfKS6dy34fAhvxfZa6Qi', model: 'claude-opus-4-7', name: 'Claude Opus' },
+        { key: 'sk-TORtnOOKC7ws15iPbuUwAcyZ83V5HOvnlvXVhc674IpCHX1U', model: 'claude-opus-4-7', name: 'Claude Opus' },
+        
+        // Smart-Chat - Auto rotate multi model
+        { key: 'sk-CabV7hZfpgL8HgLSZjfD1GCRL9ZxDFPTH0BGDKqvJzNkBil3', model: 'smart-chat', name: 'Smart-Chat' },
+        { key: 'sk-D8t2X4fsGY676vp3r2jIo3C0LgedFxuycgsFGnJ27tEcVLEl', model: 'smart-chat', name: 'Smart-Chat' }
+    ];
+    
+    let currentApiIndex = 0;
+    let currentConfig = API_CONFIGS[0];
+    
+    // ========== DATABASE ==========
+    let users = [];
+    let currentUser = null;
+    let pendingVerify = null;
+    let verifyCode = null;
+    
+    let currentMode = 'general';
+    let currentPersonality = 'hero';
+    let msgCount = 0;
+    let isTyping = false;
+    let isRecording = false;
+    let recognition = null;
+    
+    // ========== CALL FREE LLM API ==========
+    async function callFreeAPI(message) {
+        document.getElementById('apiStatusMsg').innerHTML = `<i class="fas fa-spinner fa-pulse"></i> AI sedang berpikir (${currentConfig.name})...`;
+        
+        let personalityText = "";
+        let modeText = "";
+        
+        switch(currentPersonality) {
+            case 'hero':
+                personalityText = "Kamu adalah asisten HEROIC. Bicaralah dengan semangat, energi, dan motivasi. Gunakan kata-kata positif seperti 'Power!', 'Keren!', 'Hebat!'. Selalu beri semangat.";
+                break;
+            case 'master':
+                personalityText = "Kamu adalah asisten MASTER EXPERT. Berikan jawaban yang sangat DETAIL, AKURAT, dan PROFESIONAL. Kamu expert di semua bidang.";
+                break;
+            case 'casual':
+                personalityText = "Kamu adalah asisten CASUAL. Bicaralah secara NATURAL dan SANTAI seperti teman ngobrol. Gunakan bahasa gaul kekinian yang ramah.";
+                break;
+            default:
+                personalityText = "Kamu adalah asisten yang membantu. Jawab pertanyaan dengan lengkap dan ramah.";
+        }
+        
+        switch(currentMode) {
+            case 'coding':
+                modeText = "MODE CODING: Kamu adalah EXPERT CODING. Berikan kode yang LENGKAP, BERFUNGSI, dan RAPI. Support semua bahasa pemrograman. Format kode dengan markdown code block. Sertakan penjelasan cara kerja kode.";
+                break;
+            case 'creative':
+                modeText = "MODE CREATIVE: Kamu adalah CREATIVE WRITER. Tulislah konten yang INDAH, IMAGINATIF, dan MENARIK. Gunakan bahasa yang kaya dan deskripsi hidup.";
+                break;
+            default:
+                modeText = "MODE CHAT UMUM: Jawab pertanyaan dengan LENGKAP, AKURAT, dan MEMBANTU. Berikan penjelasan mendalam.";
+        }
+        
+        const systemPrompt = `${personalityText} ${modeText} Jawab dalam bahasa Indonesia dengan baik dan benar. Berikan jawaban yang panjang dan detail.`;
+        
+        // Coba semua API key yang tersedia
+        for (let attempt = 0; attempt < API_CONFIGS.length; attempt++) {
+            const config = API_CONFIGS[attempt];
+            try {
+                const response = await fetch(`${API_BASE_URL}/chat/completions`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${config.key}`
+                    },
+                    body: JSON.stringify({
+                        model: config.model,
+                        messages: [
+                            { role: "system", content: systemPrompt },
+                            { role: "user", content: message }
+                        ],
+                        max_tokens: 2000,
+                        temperature: 0.8
+                    })
+                });
+                
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => ({}));
+                    console.warn(`API ${config.name} failed:`, response.status, errorData);
+                    continue; // Coba key berikutnya
+                }
+                
+                const data = await response.json();
+                const reply = data.choices?.[0]?.message?.content;
+                
+                if (reply && reply.length > 10) {
+                    // Sukses, update current config
+                    currentConfig = config;
+                    document.getElementById('apiStatusMsg').innerHTML = `<i class="fas fa-check-circle"></i> ✅ AI siap! (${config.name})`;
+                    return reply;
+                }
+                
+            } catch (error) {
+                console.warn(`API ${config.name} error:`, error.message);
+                continue;
+            }
+        }
+        
+        // Jika semua API gagal
+        document.getElementById('apiStatusMsg').innerHTML = `<i class="fas fa-exclamation-triangle"></i> ⚠️ Semua API sedang sibuk, coba lagi nanti`;
+        return getLocalResponse(message);
+    }
+    
+    // ========== LOCAL FALLBACK ==========
+    function getLocalResponse(message) {
+        const lowerMsg = message.toLowerCase();
+        
+        if (lowerMsg.includes('halo') || lowerMsg.includes('hai')) {
+            return "👋 Halo juga! Ada yang bisa saya bantu hari ini?";
+        }
+        
+        if (lowerMsg.includes('presiden keempat') || lowerMsg.includes('presiden ke 4')) {
+            return "📜 **Presiden keempat Indonesia** adalah **K.H. Abdurrahman Wahid** (Gus Dur), yang menjabat dari tahun 1999 hingga 2001. Beliau adalah tokoh Nahdlatul Ulama (NU) yang dikenal dengan kebijakan toleransi dan reformasi di awal era reformasi.";
+        }
+        
+        if (lowerMsg.includes('kode html') || (lowerMsg.includes('buat') && lowerMsg.includes('website'))) {
+            return `💻 **Kode HTML Website Portfolio:**\n\n\`\`\`html\n<!DOCTYPE html>\n<html>\n<head><title>Portfolio</title>\n<style>\nbody { font-family: Arial; background: linear-gradient(135deg, #667eea, #764ba2); color: white; text-align: center; padding: 50px; }\nbutton { background: #4ecdc4; padding: 10px 20px; border: none; border-radius: 10px; cursor: pointer; }\n</style>\n</head>\n<body>\n<h1>✨ Portfolio Saya ✨</h1>\n<button onclick="alert('Halo!')">Hubungi</button>\n</body>\n</html>\n\`\`\`\n\nCopy-paste ke file .html dan buka di browser!`;
+        }
+        
+        if (lowerMsg.includes('black hole') || lowerMsg.includes('lubang hitam')) {
+            return `🕳️ **Black Hole**\n\nBlack hole adalah wilayah dengan gravitasi sangat kuat. Terbentuk dari bintang masif yang runtuh. Ada supermassive black hole di pusat galaksi Bima Sakti (Sagittarius A*).`;
+        }
+        
+        if (lowerMsg.includes('relativitas') || lowerMsg.includes('einstein')) {
+            return `⚛️ **Teori Relativitas Einstein**\n\nTeori relativitas mengajarkan bahwa ruang dan waktu itu relatif. E=mc² adalah rumus paling terkenal, menjelaskan energi = massa × kecepatan cahaya kuadrat.`;
+        }
+        
+        return `🤖 **Avengers AI siap membantu!**\n\nPertanyaan: "${message.substring(0, 100)}..."\n\n💡 Coba tanyakan:\n• "Siapa presiden keempat Indonesia?"\n• "Buatkan kode HTML"\n• "Jelaskan black hole"\n• "Apa makna kehidupan?"\n\nAI akan menjawab dengan lengkap! 🚀`;
+    }
+    
+    async function callAI(message) {
+        return await callFreeAPI(message);
+    }
+    
+    // ========== DATABASE FUNCTIONS ==========
+    function initData() {
+        const savedUsers = localStorage.getItem('avengers_users_v7');
+        if (savedUsers) {
+            users = JSON.parse(savedUsers);
+        } else {
+            users = [{
+                email: 'owner@avengers.ai',
+                password: 'owner123456',
+                role: 'owner',
+                verified: true
+            }];
+            localStorage.setItem('avengers_users_v7', JSON.stringify(users));
+        }
+        
+        const savedSession = localStorage.getItem('avengers_session_v7');
+        if (savedSession) {
+            try {
+                const session = JSON.parse(savedSession);
+                const user = users.find(u => u.email === session.email && u.verified);
+                if (user) {
+                    currentUser = user;
+                    showApp();
+                    return;
+                }
+            } catch(e) {}
+        }
+        showLogin();
+    }
+    
+    function showLogin() {
+        document.getElementById('loginContainer').style.display = 'flex';
+        document.getElementById('mainApp').style.display = 'none';
+        document.getElementById('formTitle').innerText = 'LOGIN';
+        document.getElementById('loginSubmitBtn').innerText = 'Login';
+        document.getElementById('switchBtn').innerHTML = 'Belum punya akun? Register';
+        document.getElementById('loginEmail').value = '';
+        document.getElementById('loginPassword').value = '';
+        document.getElementById('loginError').innerText = '';
+    }
+    
+    function showRegister() {
+        document.getElementById('formTitle').innerText = 'REGISTER';
+        document.getElementById('loginSubmitBtn').innerText = 'Register';
+        document.getElementById('switchBtn').innerHTML = 'Sudah punya akun? Login';
+        document.getElementById('loginError').innerText = '';
+    }
+    
+    function showApp() {
+        document.getElementById('loginContainer').style.display = 'none';
+        document.getElementById('mainApp').style.display = 'block';
+        document.getElementById('userEmailDisplay').innerText = currentUser.email;
+        document.getElementById('userRoleDisplay').innerText = currentUser.role === 'owner' ? '👑 OWNER' : '👤 USER';
+        loadChat();
+    }
+    
+    function showVerifyModal(email, password) {
+        pendingVerify = { email, password, role: 'user' };
+        verifyCode = Math.floor(100000 + Math.random() * 900000).toString();
+        document.getElementById('displayCode').innerText = verifyCode;
+        document.getElementById('verifyModal').style.display = 'flex';
+        document.getElementById('verifyCodeInput').value = '';
+        document.getElementById('verifyError').innerText = '';
+    }
+    
+    function handleAuth() {
+        const isLogin = document.getElementById('formTitle').innerText === 'LOGIN';
+        const email = document.getElementById('loginEmail').value.trim();
+        const password = document.getElementById('loginPassword').value;
+        
+        if (!email || !password) {
+            document.getElementById('loginError').innerText = 'Email dan password wajib diisi!';
+            return;
+        }
+        if (password.length < 8) {
+            document.getElementById('loginError').innerText = 'Password minimal 8 karakter!';
+            return;
+        }
+        
+        if (isLogin) {
+            const user = users.find(u => u.email === email && u.password === password);
+            if (!user) {
+                document.getElementById('loginError').innerText = 'Email atau password salah!';
+                return;
+            }
+            if (!user.verified) {
+                document.getElementById('loginError').innerText = 'Akun belum diverifikasi!';
+                return;
+            }
+            currentUser = user;
+            localStorage.setItem('avengers_session_v7', JSON.stringify({ email: user.email }));
+            showApp();
+        } else {
+            if (users.find(u => u.email === email)) {
+                document.getElementById('loginError').innerText = 'Email sudah terdaftar!';
+                return;
+            }
+            showVerifyModal(email, password);
+        }
+    }
+    
+    function verifyAccount() {
+        const code = document.getElementById('verifyCodeInput').value;
+        if (code !== verifyCode) {
+            document.getElementById('verifyError').innerText = 'Kode verifikasi salah!';
+            return;
+        }
+        const newUser = {
+            email: pendingVerify.email,
+            password: pendingVerify.password,
+            role: 'user',
+            verified: true
+        };
+        users.push(newUser);
+        localStorage.setItem('avengers_users_v7', JSON.stringify(users));
+        document.getElementById('verifyModal').style.display = 'none';
+        pendingVerify = null;
+        verifyCode = null;
+        currentUser = newUser;
+        localStorage.setItem('avengers_session_v7', JSON.stringify({ email: newUser.email }));
+        showApp();
+    }
+    
+    function resendCode() {
+        if (pendingVerify) {
+            verifyCode = Math.floor(100000 + Math.random() * 900000).toString();
+            document.getElementById('displayCode').innerText = verifyCode;
+            alert(`Kode verifikasi baru: ${verifyCode}`);
+        }
+    }
+    
+    function logout() {
+        currentUser = null;
+        localStorage.removeItem('avengers_session_v7');
+        showLogin();
+    }
+    
+    function loadChat() {
+        const key = `chat_${currentUser.email}`;
+        const saved = localStorage.getItem(key);
+        if (saved) {
+            const messages = JSON.parse(saved);
+            const container = document.getElementById('messages');
+            container.innerHTML = '';
+            messages.forEach(msg => addMsgDirect(msg.sender, msg.content));
+            msgCount = messages.length;
+            updateStats();
+        }
+    }
+    
+    function saveChat() {
+        const messages = [];
+        document.querySelectorAll('.message').forEach(msg => {
+            messages.push({
+                sender: msg.classList.contains('user') ? 'user' : 'bot',
+                content: msg.querySelector('.message-content').innerHTML
+            });
+        });
+        localStorage.setItem(`chat_${currentUser.email}`, JSON.stringify(messages));
+    }
+    
+    function addMsg(sender, content) {
+        addMsgDirect(sender, content);
+        saveChat();
+        msgCount++;
+        updateStats();
+        if (sender === 'bot' && content.length < 200) speak(content);
+    }
+    
+    function addMsgDirect(sender, content) {
+        const container = document.getElementById('messages');
+        const div = document.createElement('div');
+        div.className = `message ${sender}`;
+        div.innerHTML = `
+            <div class="message-avatar"><i class="fas ${sender === 'user' ? 'fa-user' : 'fa-robot'}"></i></div>
+            <div class="message-content">${formatMessage(content)}</div>
+        `;
+        container.appendChild(div);
+        container.scrollTop = container.scrollHeight;
+    }
+    
+    function formatMessage(text) {
+        text = text.replace(/```(\w*)\n([\s\S]*?)```/g, (match, lang, code) => {
+            return `<pre><code>${escapeHtml(code.trim())}</code></pre>`;
+        });
+        text = text.replace(/`([^`]+)`/g, '<code>$1</code>');
+        text = text.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+        text = text.replace(/\n/g, '<br>');
+        return text;
+    }
+    
+    function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+    
+    function showTyping() {
+        if (isTyping) return;
+        isTyping = true;
+        const container = document.getElementById('messages');
+        const div = document.createElement('div');
+        div.className = 'message bot';
+        div.id = 'typingIndicator';
+        div.innerHTML = `<div class="message-avatar"><i class="fas fa-robot"></i></div><div class="typing-indicator"><span></span><span></span><span></span></div>`;
+        container.appendChild(div);
+        container.scrollTop = container.scrollHeight;
+    }
+    
+    function hideTyping() {
+        const el = document.getElementById('typingIndicator');
+        if (el) el.remove();
+        isTyping = false;
+    }
+    
+    function updateStats() {
+        document.getElementById('msgCount').innerText = msgCount;
+    }
+    
+    function clearChat() {
+        document.getElementById('messages').innerHTML = `
+            <div class="message bot">
+                <div class="message-avatar"><i class="fas fa-robot"></i></div>
+                <div class="message-content">Chat dibersihkan! ✨</div>
+            </div>
+        `;
+        msgCount = 0;
+        saveChat();
+        updateStats();
+    }
+    
+    function exportChat() {
+        let text = `AVENGERS AI CHAT\n${new Date().toLocaleString()}\nUser: ${currentUser.email}\n${'='.repeat(40)}\n\n`;
+        document.querySelectorAll('.message').forEach(msg => {
+            const sender = msg.classList.contains('user') ? '👤 User' : '🤖 AI';
+            const content = msg.querySelector('.message-content').innerText;
+            text += `[${sender}]\n${content}\n\n`;
+        });
+        const blob = new Blob([text], { type: 'text/plain' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `chat_${Date.now()}.txt`;
+        a.click();
+        URL.revokeObjectURL(url);
+    }
+    
+    async function sendMessage() {
+        const input = document.getElementById('messageInput');
+        const message = input.value.trim();
+        if (!message) return;
+        
+        input.value = '';
+        input.style.height = 'auto';
+        addMsg('user', message);
+        showTyping();
+        
+        const reply = await callAI(message);
+        hideTyping();
+        addMsg('bot', reply);
+    }
+    
+    function setQuick(text) {
+        document.getElementById('messageInput').value = text;
+        document.getElementById('messageInput').focus();
+    }
+    
+    function setMode(mode) {
+        currentMode = mode;
+        const names = { general: 'Chat Umum', coding: 'Coding Expert', creative: 'Creative Writing' };
+        document.getElementById('modeLabel').innerText = names[mode];
+        addMsg('bot', `🦸 Mode diubah ke **${names[mode]}**`);
+    }
+    
+    function setPersonality(personality) {
+        currentPersonality = personality;
+        const names = { hero: 'Hero', master: 'Master', casual: 'Casual' };
+        document.getElementById('personalityLabel').innerText = names[personality];
+        addMsg('bot', `🎭 Personality diubah ke **${names[personality]}**`);
+    }
+    
+    function speak(text) {
+        if ('speechSynthesis' in window) {
+            const u = new SpeechSynthesisUtterance(text);
+            u.lang = 'id-ID';
+            speechSynthesis.cancel();
+            speechSynthesis.speak(u);
+        }
+    }
+    
+    function speakLast() {
+        const last = document.querySelector('.message.bot:last-child .message-content');
+        if (last) speak(last.innerText.substring(0, 300));
+    }
+    
+    function toggleVoice() {
+        if (!('webkitSpeechRecognition' in window)) {
+            addMsg('bot', '❌ Voice input hanya support Chrome/Edge');
+            return;
+        }
+        
+        if (isRecording) {
+            if (recognition) recognition.stop();
+            document.getElementById('voiceBtn').innerHTML = '<i class="fas fa-microphone"></i>';
+            isRecording = false;
+            return;
+        }
+        
+        const SpeechRecognition = window.webkitSpeechRecognition;
+        recognition = new SpeechRecognition();
+        recognition.lang = 'id-ID';
+        recognition.onstart = () => {
+            isRecording = true;
+            document.getElementById('voiceBtn').innerHTML = '<i class="fas fa-microphone-slash" style="color: #ff6b6b;"></i>';
+        };
+        recognition.onresult = (e) => {
+            const text = e.results[0][0].transcript;
+            document.getElementById('messageInput').value = text;
+            sendMessage();
+        };
+        recognition.onerror = () => addMsg('bot', '❌ Gagal menangkap suara');
+        recognition.onend = () => {
+            isRecording = false;
+            document.getElementById('voiceBtn').innerHTML = '<i class="fas fa-microphone"></i>';
+        };
+        recognition.start();
+    }
+    
+    async function sendFile(input) {
+        if (input.files[0]) {
+            const file = input.files[0];
+            addMsg('user', `📎 File: ${file.name}`);
+            if (file.type === 'text/plain' || file.name.endsWith('.js') || file.name.endsWith('.html') || file.name.endsWith('.py')) {
+                const text = await file.text();
+                showTyping();
+                const reply = await callAI(`Analisis file berikut:\n\n${text.substring(0, 2000)}`);
+                hideTyping();
+                addMsg('bot', reply);
+            } else {
+                addMsg('bot', `📄 File "${file.name}" diterima!`);
+            }
+        }
+        input.value = '';
+    }
+    
+    // ========== EVENT LISTENERS ==========
+    document.getElementById('loginSubmitBtn').onclick = handleAuth;
+    document.getElementById('switchBtn').onclick = () => {
+        if (document.getElementById('formTitle').innerText === 'LOGIN') showRegister();
+        else showLogin();
+    };
+    document.getElementById('verifyBtn').onclick = verifyAccount;
+    document.getElementById('resendBtn').onclick = resendCode;
+    
+    document.getElementById('messageInput').addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            sendMessage();
+        }
+    });
+    
+    document.getElementById('messageInput').addEventListener('input', function() {
+        this.style.height = 'auto';
+        this.style.height = Math.min(this.scrollHeight, 70) + 'px';
+    });
+    
+    // ========== START ==========
+    initData();
+</script>
+</body>
+</html>
